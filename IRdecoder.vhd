@@ -6,10 +6,10 @@ entity IRdecoder is
     port(
         IR_in :in std_logic_vector(15 downto 0);
         instruction :out std_logic_vector(31 downto 0);
+        adModeSrc,adModeDst :out std_logic_vector(7 downto 0);
         IRdec_en:in std_logic
         );
 end IRdecoder;
-
 
 architecture IRdecoder_arch of IRdecoder is
     signal two_operands : std_logic_vector(15 downto 0);
@@ -26,5 +26,7 @@ begin
     bransh_opr_dec_c: entity work.decoder generic map(3) port map (IR_in(13 downto 11),bransh,branch_en);
     bonus_dec_c: entity work.decoder generic map(2) port map (IR_in(7 downto 6),bonus,two_operands(11));
     instruction <= bonus(3) & bonus(1 downto 0)& bransh(6 downto 0) & no_operand & one_operand(10 downto 0)& two_operands(8 downto 0);
+    adModeSrcDec_c : entity work.decoder generic map(3) port map (IR_in(11 downto 9),adModeSrc,IRdec_en);
+    adModeDstDec_c : entity work.decoder generic map(3) port map (IR_in(5 downto 3),adModeDst,IRdec_en);
 end IRdecoder_arch;
     
