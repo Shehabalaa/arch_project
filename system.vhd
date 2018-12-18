@@ -10,20 +10,15 @@ port (  SelectOutA : in std_logic_vector (3 downto 0);
 	SelectDistMARMDRFlag : in std_logic_vector (1 downto 0);
 	SelectReadWrite : in std_logic_vector (1 downto 0);
 	DecoderEnSrcA: in std_logic;
-    	DecoderEnSrcB: in std_logic;
+    DecoderEnSrcB: in std_logic;
 	DecoderEnRnTemp: in std_logic;
 	DecoderEnMARMDRFlag: in std_logic;
 	DecoderEnReadWrite: in std_logic;
 	DecodingCircuitEn: in std_logic;
-	clk: in std_logic;
-        rst: in std_logic;
-	clkram: in std_logic;
+	clk,rst,clkram: in std_logic;
 	muxselect:in std_logic;
-	busA : inout std_logic_vector (15 downto 0);
-	busB : inout std_logic_vector (15 downto 0);
-	busC : inout std_logic_vector (15 downto 0);
+	busA,busB,busC : inout std_logic_vector (15 downto 0);
 	aluSel :in std_logic_vector (4 downto 0));
-
 end system;
 ------------------------------------------------------------
 Architecture myRegisterFile of system is--------------------
@@ -189,6 +184,7 @@ parityBit <= not busC(0);
 flags(3)<= parityBit;
 flags(15 downto 5) <="00000000000";
 ---------------------------------------------------------------------------------------------------------------
+
 end Architecture;
 
 
