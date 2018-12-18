@@ -4,21 +4,21 @@ USE IEEE.numeric_std.all;
 
 ENTITY PlA is 
 	port (  
+        instruction :in std_logic_vector(31 downto 0);
         nextAdd: in std_logic_vector (5 downto 0);
 	    status : in std_logic_vector (4 downto 0);
 		marin : in std_logic_vector(15 downto 0);
-		marout: out std_logic_vector(15 downto 0);
+        marout: out std_logic_vector(15 downto 0);
+        adModeSrc,adModeDst:in std_logic_vector(7 downto 0);
 		plaEn,ORsrcind,ORdstind: in std_logic );
 end Entity PlA;
 
 architecture pla_arch1 of PlA is 
     signal oldoffset: std_logic_vector(5 downto 0);
-    signal instruction :std_logic_vector(31 downto 0);
     signal IR: std_logic_vector(15 downto 0); -- to be removed later
-    signal adModeSrc,adModeDst: std_logic_vector(7 downto 0);
 	signal twoOp,oneOp : boolean;
 begin
-    IRdecoder_c: entity work.IRdecoder port map(IR,instruction,adModeSrc,adModeDst,'1');
+    
     twoOp <= not(instruction(8 downto 0) = '0'&x"00");
     oneOp <= not(instruction(19 downto 9) = "000"&x"00");
     oldoffset <= marin(5 downto 0);
