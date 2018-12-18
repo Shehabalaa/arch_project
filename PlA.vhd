@@ -7,8 +7,8 @@ ENTITY PlA is
         instruction :in std_logic_vector(31 downto 0);
         nextAdd: in std_logic_vector (5 downto 0);
 	    status : in std_logic_vector (4 downto 0);
-		microARin : in std_logic_vector(15 downto 0);
-        microARout: out std_logic_vector(15 downto 0);
+		microARin : in std_logic_vector(7 downto 0);
+        microARout: out std_logic_vector(7 downto 0);
         adModeSrc,adModeDst:in std_logic_vector(7 downto 0);
 		plaEn,ORsrcind,ORdstind: in std_logic );
 end Entity PlA;
@@ -18,7 +18,6 @@ architecture pla_arch1 of PlA is
     signal IR: std_logic_vector(15 downto 0); -- to be removed later
 	signal twoOp,oneOp : boolean;
 begin
-    
     twoOp <= not(instruction(8 downto 0) = '0'&x"00");
     oneOp <= not(instruction(19 downto 9) = "000"&x"00");
     oldoffset <= microARin(5 downto 0);

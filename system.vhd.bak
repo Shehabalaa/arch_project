@@ -10,20 +10,15 @@ port (  SelectOutA : in std_logic_vector (3 downto 0);
 	SelectDistMARMDRFlag : in std_logic_vector (1 downto 0);
 	SelectReadWrite : in std_logic_vector (1 downto 0);
 	DecoderEnSrcA: in std_logic;
-    	DecoderEnSrcB: in std_logic;
+    DecoderEnSrcB: in std_logic;
 	DecoderEnRnTemp: in std_logic;
 	DecoderEnMARMDRFlag: in std_logic;
 	DecoderEnReadWrite: in std_logic;
 	DecodingCircuitEn: in std_logic;
-	clk: in std_logic;
-        rst: in std_logic;
-	clkram: in std_logic;
+	clk,rst,clkram: in std_logic;
 	muxselect:in std_logic;
-	busA : inout std_logic_vector (15 downto 0);
-	busB : inout std_logic_vector (15 downto 0);
-	busC : inout std_logic_vector (15 downto 0);
+	busA,busB,busC : inout std_logic_vector (15 downto 0);
 	aluSel :in std_logic_vector (4 downto 0));
-
 end system;
 ------------------------------------------------------------
 Architecture myRegisterFile of system is--------------------
@@ -89,6 +84,11 @@ signal flags :std_logic_vector(15 downto 0);
 ----------------------------------------------------------------
 signal addressFieldOfIR : std_logic_vector(15 downto 0);
 -----------------------------------------------------------------
+--IRdecoder signals
+signal instruction : std_logic_vector(31 downto 0);
+signal adModeSrc,adModeDst: std_logic_vector(7 downto 0);
+--CWsignal
+signal CW std_logic_vector(31 downto 0);
 Begin-------------------------------------------------------------
 ------------------------------------------------------------------
 DecodingCircuitSrc : entity work.DecodingCircuit port map(outA(0),OutB(0),InC(0),outRegIRTriIn(8 downto 6),DecodingCircuitSrcOutput,DecodingCircuitEn);
@@ -163,7 +163,7 @@ mdr:entity work.my_nDFF  generic map (16) port map ( clk , rst ,muxout, outRegMD
 tri9A: entity work.tri_state_buffer port map (outRegMDRTriIn,OutA(4),busA );
 tri9B: entity work.tri_state_buffer port map (outRegMDRTriIn,OutB(3),busB );
 ----
-mux :entity work.mux2x1 port map(ReadWriteDecoder(0),ramout,busC,muxout);
+mux:entity work.mux2x1 port map(ReadWriteDecoder(0),ramout,busC,muxout);
 ram: entity work.ram port map (clkram, ReadWriteDecoder(1),address(10 downto 0),outRegMDRTriIn,ramout);
 ------------------------------------------------------------------------------------------------------------------.
 Regtemp1:entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, outRegTemp1TriIn,InC(4));
@@ -174,7 +174,7 @@ Regtemp2:entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, outRe
 tri11A: entity work.tri_state_buffer port map (outRegTemp2TriIn,OutA(6),busA );
 tri11B: entity work.tri_state_buffer port map (outRegTemp2TriIn,OutB(5),busB );
 --
-RegIR:entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, outRegIRTriIn,InC(6)); -- temp ,flag ,ir
+RegIR: entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, outRegIRTriIn,InC(6)); -- temp ,flag ,ir
 addressFieldOfIR<="00000"&outRegIRTriIn(10 downto 0);
 tri12B: entity work.tri_state_buffer port map (addressFieldOfIR,OutB(6),busB );
 --
@@ -182,13 +182,19 @@ Regflag:entity work.my_nDFF  generic map (16) port map ( clk , rst ,flags, outRe
 tri13A: entity work.tri_state_buffer port map (outRegFlagTriIn,OutA(7),busA);
 tri13B: entity work.tri_state_buffer port map (outRegFlagTriIn,OutB(7),busB);
 --------------------------------------------------------------------------------------------------------------------
-alu : entity work.ALU port map (F => busC,A=>busA,B=>busB,Cin=>outRegFlagTriIn(0),alu_select =>aluSel, cout=>flags(0)); --alu
+alu : entity work.ALU port map (F => busC,A=>busA,B=>busB,Cin=>outRegFlagTriIn(0), cout=>flags(0),AluSelect=>aluSel); --alu
 flags(1) <='1' when busC =x"0000" else '0';
 flags(2) <='1' when busC(15) ='1' else '0';
 parityBit <= not busC(0);
 flags(3)<= parityBit;
 flags(15 downto 5) <="00000000000";
 ---------------------------------------------------------------------------------------------------------------
+-- connetion IR to IR decoder
+IRdecoder_c : entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
+--micro AR reg
+--CWreg
+--PLA
+PLA_c:  entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
 end Architecture;
 
 

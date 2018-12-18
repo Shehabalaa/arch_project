@@ -84,6 +84,15 @@ signal flags :std_logic_vector(15 downto 0);
 ----------------------------------------------------------------
 signal addressFieldOfIR : std_logic_vector(15 downto 0);
 -----------------------------------------------------------------
+--IRdecoder signals
+signal instruction : std_logic_vector(31 downto 0);
+signal adModeSrc,adModeDst: std_logic_vector(7 downto 0);
+--CWsignal
+signal RomCwOut,RegCwOut: std_logic_vector(31 downto 0);
+--pla
+signal PlaMicroARout,PlaMicroARin : std_logic_vector(7 downto 0);
+--micro ar
+signal microArOut : std_logic_vector(7 downto 0);
 Begin-------------------------------------------------------------
 ------------------------------------------------------------------
 DecodingCircuitSrc : entity work.DecodingCircuit port map(outA(0),OutB(0),InC(0),outRegIRTriIn(8 downto 6),DecodingCircuitSrcOutput,DecodingCircuitEn);
@@ -184,7 +193,18 @@ parityBit <= not busC(0);
 flags(3)<= parityBit;
 flags(15 downto 5) <="00000000000";
 ---------------------------------------------------------------------------------------------------------------
-
+--connetion IR to IR decoder
+IRdecoder_c : entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
+--micro AR reg
+RegMicroAR_c:entity work.my_nDFF  generic map (8) port map (clk , rst ,PlaMicroARout,microArOut,'1');
+--Rom
+Rom_c:entity work.rom port map (microArOut,RomCwOut);
+--CWreg
+RegCw_c:entity work.my_nDFF  generic map (32) port map (clk , rst ,RomCwOut,RegCwOut,'1');
+--PLA
+PLA_c:  entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
+--------------
+--- get out control signals form cw
 end Architecture;
 
 

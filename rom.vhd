@@ -8,13 +8,10 @@ ENTITY rom IS
 		dataout : OUT std_logic_vector(31 DOWNTO 0));
 END ENTITY rom;
 
-
-
-ARCHITECTURE syncrama OF rom IS
-
+ARCHITECTURE rom_arch OF rom IS
 	TYPE rom_type IS ARRAY(0 TO 255) OF std_logic_vector(31 DOWNTO 0);
 	SIGNAL rom : rom_type ;
 begin
 	dataout <= rom(to_integer(unsigned(address)));
-END syncrama;
+END rom_arch;
 
