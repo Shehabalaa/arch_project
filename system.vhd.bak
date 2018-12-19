@@ -4,11 +4,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 --ir , el decoder enables ,flag enable ,el read -> mux,  wmfc ,mfc
 ---------------------------------------------------------
 Entity system is
-port (  SelectOutA : in std_logic_vector (3 downto 0);
-	SelectOutB : in std_logic_vector (3 downto 0);
-	SelectInCRnTemp : in std_logic_vector (3 downto 0);
-	SelectDistMARMDRFlag : in std_logic_vector (1 downto 0);
-	SelectReadWrite : in std_logic_vector (1 downto 0);
+port (  
 	DecoderEnSrcA: in std_logic;
     DecoderEnSrcB: in std_logic;
 	DecoderEnRnTemp: in std_logic;
@@ -17,13 +13,27 @@ port (  SelectOutA : in std_logic_vector (3 downto 0);
 	DecodingCircuitEn: in std_logic;
 	clk,rst,clkram: in std_logic;
 	muxselect:in std_logic;
-	busA,busB,busC : inout std_logic_vector (15 downto 0);
-	aluSel :in std_logic_vector (4 downto 0));
+	initMicroAr: in std_logic;
+	busA,busB,busC : inout std_logic_vector (15 downto 0));
 end system;
 ------------------------------------------------------------
 Architecture myRegisterFile of system is--------------------
 -----------------------------------------------------------
+---- control word signlas 
 
+signal aluSel : std_logic_vector (4 downto 0); --- f0 
+signal SelectOutA: std_logic_vector(3 downto 0);----- f1
+signal SelectOutB: std_logic_vector(3 downto 0);----- f2
+signal SelectInCRnTemp :  std_logic_vector (3 downto 0); ----- f3 with increment pc 
+signal SelectDistMARMDRFlag : std_logic_vector (1 downto 0); ----- f4
+signal SelectReadWrite :  std_logic_vector (1 downto 0); -- --- f5
+
+signal signalPLaOut :  std_logic; -- --- f7
+signal Wmfc :  std_logic; -- --- f8
+
+signal nextAddress : std_logic_vector(5 downto 0); ----- next address
+
+------------------------------------------------ -------------------
 Signal RnTempInDecoder: std_logic_vector (15 downto 0); -->(0)Rn src  (8) temp1   (9) temp2 (10) IR (11) no operation
 Signal MARMdrFlagINDecoder: std_logic_vector (3 downto 0); -->  (0) Mar (1) mdr (2) flag (3) no operation
 Signal ReadWriteDecoder: std_logic_vector (3 downto 0);  --->  (0) read(muxselect) (1) write (2) no operatin  
@@ -60,6 +70,8 @@ signal R5outAEn : std_logic;
 signal R5outBEn : std_logic;
 signal R5IncEn : std_logic;
 signal PCEn:std_logic;
+------------------------------------
+signal mdrEn:std_logic;
 ----------------------------------------------------------------
 signal outReg0TriIn :std_logic_vector(15 downto 0);
 signal outReg1TriIn :std_logic_vector(15 downto 0);
@@ -82,13 +94,20 @@ signal muxout:std_logic_vector(15 downto 0);
 signal muxout2:std_logic_vector(15 downto 0);---> l pc incrementer  
 signal flags :std_logic_vector(15 downto 0); 
 ----------------------------------------------------------------
-signal addressFieldOfIR : std_logic_vector(15 downto 0);
+signal addressFieldOfIR : std_logic_vector(15 downto 0);  
 -----------------------------------------------------------------
 --IRdecoder signals
 signal instruction : std_logic_vector(31 downto 0);
 signal adModeSrc,adModeDst: std_logic_vector(7 downto 0);
 --CWsignal
-signal CW std_logic_vector(31 downto 0);
+signal RomCwOut,RegCwOut: std_logic_vector(31 downto 0);
+--pla
+signal PlaMicroARout,PlaMicroARin : std_logic_vector(5 downto 0);
+--micro ar
+signal microArOut : std_logic_vector(5 downto 0);
+
+signal Orvector: std_logic_vector (7 downto 0);
+
 Begin-------------------------------------------------------------
 ------------------------------------------------------------------
 DecodingCircuitSrc : entity work.DecodingCircuit port map(outA(0),OutB(0),InC(0),outRegIRTriIn(8 downto 6),DecodingCircuitSrcOutput,DecodingCircuitEn);
@@ -99,6 +118,8 @@ DecDistRTemp : entity work.Decoder4x16 port map (decSel=>SelectInCRnTemp,decOut=
 DecDistMARMDRFlagin : entity work.Decoder2x4 port map (SelectDistMARMDRFlag ,MARMdrFlagINDecoder,DecoderEnMARMDRFlag);
 DecReadWrite: entity work.Decoder2x4 port map (SelectReadWrite,ReadWriteDecoder,DecoderEnReadWrite);
 PCIncrementer : entity work.PCIncrementer port map (outRegPcTriIn,PCIncOut,InC(7));
+
+
 --------------------------------------------------------------------------------------------
 R0outAEn<=DecodingCircuitSrcOutput(0) or DecodingCircuitDstOutput(0);
 R0outBEn<=DecodingCircuitSrcOutput(1) or DecodingCircuitDstOutput(1);
@@ -123,6 +144,23 @@ R4InCEn<=DecodingCircuitSrcOutput(14) or DecodingCircuitDstOutput(14);
 R5outAEn<=DecodingCircuitSrcOutput(15) or DecodingCircuitDstOutput(15);
 R5outBEn<=DecodingCircuitSrcOutput(16) or DecodingCircuitDstOutput(16);
 R5InCEn<=DecodingCircuitSrcOutput(17) or DecodingCircuitDstOutput(17);
+--------------------------------------------------------------------------------
+-- maping control word to tristaste and enable
+aluSel <= RegCwOut(31 downto 27);
+SelectOutA <= RegCwOut (26 downto 23);
+SelectOutB <= RegCwOut (22 downto 19);
+SelectInCRnTemp <= RegCwOut (18 downto 15);
+SelectDistMARMDRFlag <= RegCwOut (14 downto 13);
+SelectReadWrite <= RegCwOut (12 downto 11);
+
+signalPLaOut <= not(RegCwOut (7));
+Wmfc <= not(RegCwOut (6));
+
+nextAddress <=  RegCwOut (5 downto 0);
+
+
+decoderOr :entity work.decoder generic map (3) port map (RegCwOut (10 downto 8),Orvector,'1');
+
 --------------------------------------------------------------------------------
 Reg0:entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, outReg0TriIn,R0InCEn);
 tri0A: entity work.tri_state_buffer port map (outReg0TriIn,R0outAEn,busA );
@@ -159,7 +197,8 @@ tri7B: entity work.tri_state_buffer port map (outRegSpTriIn,OutB(2),busB );
 -----------------------------------------------------------------------------------------------------------------
 mar:entity work.my_nDFF  generic map (16) port map ( clk , rst ,busC, address,MARMdrFlagINDecoder(0));
 ----
-mdr:entity work.my_nDFF  generic map (16) port map ( clk , rst ,muxout, outRegMDRTriIn,MARMdrFlagINDecoder(1));    --ram components
+mdrEn <= MARMdrFlagINDecoder(1) or ReadWriteDecoder;
+mdr:entity work.my_nDFF  generic map (16) port map ( clk , rst ,muxout, outRegMDRTriIn,mdrEn);    --ram components
 tri9A: entity work.tri_state_buffer port map (outRegMDRTriIn,OutA(4),busA );
 tri9B: entity work.tri_state_buffer port map (outRegMDRTriIn,OutB(3),busB );
 ----
@@ -189,13 +228,18 @@ parityBit <= not busC(0);
 flags(3)<= parityBit;
 flags(15 downto 5) <="00000000000";
 ---------------------------------------------------------------------------------------------------------------
--- connetion IR to IR decoder
+--connetion IR to IR decoder
 IRdecoder_c : entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
 --micro AR reg
+RegMicroAR_c:entity work.my_nDFF  generic map (6) port map (clk , rst ,PlaMicroARout,microArOut,initMicroAr);
+--Rom
+Rom_c:entity work.rom port map (microArOut,RomCwOut);
 --CWreg
+RegCw_c: entity work.cwReg  generic map (32) port map (clk , rst ,RomCwOut,RegCwOut,'1');
 --PLA
-PLA_c:  entity work.IRdecoder port map (outRegPcTriIn,instruction,adModeSrc,adModeDst,'1');
+PLA_c:  entity work.PLA port map (nextAddress,instruction,microArOut,PlaMicroARout,flags(4 downto 0),adModeSrc,adModeDst,Orvector,signalPLaOut,initMicroAr);
+--------------
+--- get out control signals form cw
 end Architecture;
-
 
 
